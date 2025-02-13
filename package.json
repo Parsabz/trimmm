@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prebuild": "node scripts/setup-lamejs.js",
+    "predev": "node scripts/setup-lamejs.js",
+    "setup-lamejs": "node scripts/setup-lamejs.js"
   },
   "dependencies": {
     "lamejs": "^1.2.1",
@@ -16,15 +19,26 @@
     "wavefile": "^11.0.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.26.8",
+    "@babel/preset-env": "^7.26.8",
     "@eslint/eslintrc": "^3",
+    "@netlify/plugin-nextjs": "^5.9.4",
     "@types/dom-webcodecs": "^0.1.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/webpack-env": "^1.18.8",
+    "ajv": "^8.17.1",
+    "ajv-keywords": "^5.1.0",
+    "babel-loader": "^9.2.1",
+    "browserify": "^17.0.1",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8",
+    "schema-utils": "^4.3.0",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "worker-loader": "^3.0.8",
+    "node-fetch": "^2.6.1"
   }
 }

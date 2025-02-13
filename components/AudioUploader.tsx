@@ -2,31 +2,54 @@
 
 import { useState, useEffect } from 'react'
 import { AudioUploaderProps } from '../types'
+import { createWorker } from '../utils/workerFactory'
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 export default function AudioUploader({ 
   onProcessingStart, 
   onProcessingComplete,
-  onError 
+  onError,
+  onProcessingProgress
 }: AudioUploaderProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [worker, setWorker] = useState<Worker | null>(null)
+  const [isInitializing, setIsInitializing] = useState(true)
 
   useEffect(() => {
-    if (typeof Window !== 'undefined') {
-      const newWorker = new Worker(new URL('../workers/lameWorker.ts', import.meta.url))
-      setWorker(newWorker)
+    let mounted = true
 
-      return () => {
-        newWorker.terminate()
+    const initWorker = async () => {
+      try {
+        const newWorker = await createWorker()
+        if (mounted && newWorker) {
+          setWorker(newWorker)
+        }
+      } catch (error) {
+        console.error('Failed to initialize worker:', error)
+        if (mounted) {
+          onError('Failed to initialize audio processor')
+        }
+      } finally {
+        if (mounted) {
+          setIsInitializing(false)
+        }
       }
     }
-  }, [])
+
+    initWorker()
+
+    return () => {
+      mounted = false
+      if (worker) {
+        worker.terminate()
+      }
+    }
+  }, [onError])
 
   const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith('audio/')) {
-      onError('Please upload an audio file')
+      onError('Please upload a valid audio file (MP3, WAV, or OGG)')
       return
     }
 
@@ -38,19 +61,28 @@ export default function AudioUploader({
     try {
       onProcessingStart()
       
-      // Decode audio in main thread
       const audioContext = new (window.AudioContext || window.webkitAudioContext)()
       const arrayBuffer = await file.arrayBuffer()
+      
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('Failed to read audio file')
+      }
+      
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+        .catch(err => {
+          throw new Error(`Failed to decode audio: ${err.message}`)
+        })
 
       // Send audio data to worker
       if (worker) {
         worker.onmessage = (e) => {
-          const { type, segments, error } = e.data
+          const { type, segments, error, progress } = e.data
           if (type === 'complete') {
             onProcessingComplete(segments)
           } else if (type === 'error') {
             onError(error)
+          } else if (type === 'progress') {
+            onProcessingProgress(progress)
           }
         }
 
@@ -68,7 +100,16 @@ export default function AudioUploader({
         worker.postMessage({ audioData }, audioData.channels.map(channel => channel.buffer))
       }
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Failed to process audio file')
+      const errorMessage = error instanceof Error ? 
+        error.message : 
+        'An unexpected error occurred while processing the audio file'
+      onError(errorMessage)
+      console.error('Audio processing error:', error)
+    } finally {
+      // Clean up AudioContext if needed
+      if (audioContext && audioContext.state !== 'closed') {
+        await audioContext.close()
+      }
     }
   }
 
@@ -94,18 +135,24 @@ export default function AudioUploader({
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
     >
-      <input
-        type="file"
-        accept="audio/mp3,audio/mpeg,audio/wav,audio/wave,audio/ogg,audio/opus,.mp3,.wav,.ogg"
-        className="hidden"
-        id="audio-input"
-        onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) {
-            handleFileSelect(file)
-          }
-        }}
-      />
+      {isInitializing ? (
+        <div className="text-gray-600">
+          Initializing audio processor...
+        </div>
+      ) : (
+        <input
+          type="file"
+          accept="audio/mp3,audio/mpeg,audio/wav,audio/wave,audio/ogg,audio/opus,.mp3,.wav,.ogg"
+          className="hidden"
+          id="audio-input"
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) {
+              handleFileSelect(file)
+            }
+          }}
+        />
+      )}
       <label
         htmlFor="audio-input"
         className="cursor-pointer block"

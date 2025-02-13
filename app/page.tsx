@@ -8,22 +8,30 @@ import { AudioSegment } from '../types'
 
 export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [segments, setSegments] = useState<AudioSegment[]>([])
   const [error, setError] = useState<string>('')
 
   const handleProcessingStart = () => {
     setIsProcessing(true)
+    setProgress(0)
     setError('')
+  }
+
+  const handleProcessingProgress = (currentProgress: number) => {
+    setProgress(currentProgress)
   }
 
   const handleProcessingComplete = (processedSegments: AudioSegment[]) => {
     setSegments(processedSegments)
+    setProgress(1)
     setIsProcessing(false)
   }
 
   const handleError = (errorMessage: string) => {
     setError(errorMessage)
     setIsProcessing(false)
+    setProgress(0)
   }
 
   return (
@@ -38,11 +46,12 @@ export default function Home() {
       
       <AudioUploader
         onProcessingStart={handleProcessingStart}
+        onProcessingProgress={handleProcessingProgress}
         onProcessingComplete={handleProcessingComplete}
         onError={handleError}
       />
       
-      {isProcessing && <ProcessingStatus />}
+      {isProcessing && <ProcessingStatus progress={progress} />}
       
       {segments.length > 0 && <DownloadSection segments={segments} />}
     </main>

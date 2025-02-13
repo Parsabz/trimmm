@@ -7,6 +7,7 @@ export interface AudioSegment {
 
 export interface AudioUploaderProps {
   onProcessingStart: () => void
+  onProcessingProgress: (progress: number) => void
   onProcessingComplete: (segments: AudioSegment[]) => void
   onError: (error: string) => void
 }
