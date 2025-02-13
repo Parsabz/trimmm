@@ -1,5 +1,5 @@
 [build]
-  command = "echo 'Build error ignored'"
+  command = "npm install --legacy-peer-deps && npm run dev"
   publish = ".next"
 
 [[plugins]]
