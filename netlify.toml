@@ -1,17 +1,13 @@
 [build]
-  # Install dependencies and start the dev server
-  command = "npm install --legacy-peer-deps && npm run dev"
-  # Publish directory for static assets (update if different in your project)
+  # Command to start the custom dev server
+  command = "node start-dev-server.js"
+  # Publish directory (use the one your dev server serves from)
   publish = "public"
 
-[[plugins]]
-  # Use the Next.js plugin if applicable (optional)
-  package = "@netlify/plugin-nextjs"
-
 [functions]
-  # Ensure Node.js is used for serverless functions
+  # Use Node.js runtime for serverless functions
   node_bundler = "esbuild"
 
-[dev]
-  # Specify the port your dev server runs on (optional; defaults to 8888 if not specified)
-  port = 3000
+[[plugins]]
+  # Optional: Include the Next.js plugin if applicable
+  package = "@netlify/plugin-nextjs"
